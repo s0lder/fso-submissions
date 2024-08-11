@@ -42,17 +42,15 @@ const Person = ({ person }) => {
   )
 }
 
-const DisplayNumbers = ({ persons }) => {
-  return (
-    <table>
-      <tbody>
-        {persons.map(person =>
-          <Person key={person.id} person={person} />
-        )}
-      </tbody>
-    </table>
-  )
-}
+const DisplayNumbers = ({ persons }) => (
+  <table>
+    <tbody>
+      {persons.map(person =>
+        <Person key={person.id} person={person} />
+      )}
+    </tbody>
+  </table>
+)
 
 const App = () => {
   const [persons, setPersons] = useState([
