@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import axios from 'axios'
 
 const Form = ({ newName, newNumber, onSubmit, onChangeName, onChangeNumber }) => (
   <form onSubmit={onSubmit}>
@@ -53,9 +54,15 @@ const DisplayNumbers = ({ persons }) => (
 )
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    { id: 1, name: 'Arto Hellas', number: '0123-456-789' }
-  ]) 
+  const [persons, setPersons] = useState([]) 
+
+  // retrieve persons list from server
+  const hook = () => {
+    axios
+      .get('http://localhost:3001/persons')
+      .then(response => setPersons(response.data))
+  }
+  useEffect(hook, [])
 
   const [personsToShow, setPersonsToShow] = useState(persons)
   const [newName, setNewName] = useState('')
