@@ -60,6 +60,21 @@ const DisplayNumbers = ({ persons, onDelete }) => (
   </table>
 )
 
+const Notification = ({ message, isError }) => {
+  if (message === null)
+    return null
+
+  const label = isError
+    ? 'error'
+    : 'notification'
+
+  return (
+    <div className={label}>
+      {message}
+    </div>
+  )
+}
+
 const App = () => {
   const [persons, setPersons] = useState([]) 
 
@@ -75,16 +90,18 @@ const App = () => {
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filter, setFilter] = useState('')
+  const [notification, setNotification] = useState(null)
+  const [errorMessage, setErrorMessage] = useState(null)
 
   const addPerson = (event) => {
     event.preventDefault()
 
     const exists = persons.find(person => person.name === newName)
 
-    console.log(exists)
-
     if (exists) {
-      const msg = `${exists.name} is already added to the phonebook, replace the old number with a new one?`
+      const { id, name } = exists
+
+      const msg = `${name} is already added to the phonebook, replace the old number with a new one?`
       if (window.confirm(msg)) {
         const personObject = {
           ...exists,
@@ -92,9 +109,15 @@ const App = () => {
         }
 
         personService
-          .update(exists.id, personObject)
+          .update(id, personObject)
           .then(changedPerson => {
-            setPersons(persons.map(person => person.id !== exists.id ? person : changedPerson))
+            setPersons(persons.map(person => person.id !== id ? person : changedPerson))
+            setNotification(`Changed ${name}'s number`)
+            setTimeout(() => setNotification(null), 5000)
+          })
+          .catch(error => {
+            setErrorMessage(`Information of ${name} has already been removed from the server`)
+            setPersons(persons.filter(person => person.id !== id))
           })
       }
       return
@@ -108,6 +131,8 @@ const App = () => {
     personService
       .create(personObject)
       .then(response => {
+        setNotification(`Added ${newName}`)
+        setTimeout(() => setNotification(null), 5000)
         setPersons(persons.concat(response))
         setNewName('')
         setNewNumber('')
@@ -139,6 +164,8 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={notification} isError={false} />
+      <Notification message={errorMessage} isError={true} />
       <Filter filter={filter} onChange={(event) => setFilter(event.target.value)} />
       
       <h3>Add new</h3>
