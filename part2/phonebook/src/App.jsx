@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
+
+import personService from './services/personService'
+
+const Button = ({ text, onClick }) => <button onClick={onClick}>{text}</button>
 
 const Form = ({ newName, newNumber, onSubmit, onChangeName, onChangeNumber }) => (
   <form onSubmit={onSubmit}>
@@ -33,21 +36,25 @@ const Filter = ({ filter, onChange }) => (
   </div>
 )
 
-const Person = ({ person }) => {
-  const { name, number } = person
+const Person = ({ person, onDelete }) => {
+  const { id, name, number } = person
+
   return (
     <tr>
       <td>{name}</td>
       <td>{number}</td>
+      <td>
+        {<Button text={'delete'} onClick={() => onDelete(id)} />}
+      </td>
     </tr>
   )
 }
 
-const DisplayNumbers = ({ persons }) => (
+const DisplayNumbers = ({ persons, onDelete }) => (
   <table>
     <tbody>
       {persons.map(person =>
-        <Person key={person.id} person={person} />
+        <Person key={person.id} person={person} onDelete={onDelete} />
       )}
     </tbody>
   </table>
@@ -58,9 +65,9 @@ const App = () => {
 
   // retrieve persons list from server
   const hook = () => {
-    axios
-      .get('http://localhost:3001/persons')
-      .then(response => setPersons(response.data))
+    personService
+      .getAll()
+      .then(initialPersons => setPersons(initialPersons))
   }
   useEffect(hook, [])
 
@@ -72,23 +79,51 @@ const App = () => {
   const addPerson = (event) => {
     event.preventDefault()
 
-    const exists = persons.some(person => person.name === newName)
+    const exists = persons.find(person => person.name === newName)
+
+    console.log(exists)
 
     if (exists) {
-      alert(`${newName} is already added to the phonebook`)
+      const msg = `${exists.name} is already added to the phonebook, replace the old number with a new one?`
+      if (window.confirm(msg)) {
+        const personObject = {
+          ...exists,
+          number: newNumber
+        }
+
+        personService
+          .update(exists.id, personObject)
+          .then(changedPerson => {
+            setPersons(persons.map(person => person.id !== exists.id ? person : changedPerson))
+          })
+      }
       return
     }
     
     const personObject = {
-        id: persons.length + 1,
-        name: newName,
-        number: newNumber
+      name: newName,
+      number: newNumber
     }
     
-    setPersons(persons.concat(personObject))
-  
-    setNewName('')
-    setNewNumber('')
+    personService
+      .create(personObject)
+      .then(response => {
+        setPersons(persons.concat(response))
+        setNewName('')
+        setNewNumber('')
+      })
+  }
+
+  const deletePerson = (id) => {
+    const person = persons.find(p => p.id === id)
+
+    if (window.confirm(`Delete ${person.name}?`)) {
+      personService
+        .remove(id)
+        .then(() => {
+          setPersons(persons.filter(p => p.id !== id))
+        })
+    }
   }
 
   useEffect(() => {
@@ -116,7 +151,7 @@ const App = () => {
       />
 
       <h3>Numbers</h3>
-      <DisplayNumbers persons={personsToShow} />
+      <DisplayNumbers persons={personsToShow} onDelete={deletePerson} />
     </div>
   )
 }
